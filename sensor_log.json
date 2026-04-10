@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-04-10T17:16:29.712169",
-  "tmp": 0,
-  "hum": 0,
+  "timestamp": "2026-04-10T17:16:38.001812",
+  "tmp": 28.1,
+  "hum": 79,
   "sh": 0,
   "rain": 0,
-  "intensity": 43,
+  "intensity": 44,
   "pump": 1,
   "roof": 0,
   "light": 1,
-  "fan": 0
+  "fan": 1
 }
