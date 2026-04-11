@@ -161,7 +161,7 @@
 
     async function getSensorData() {
         try {
-            let res = await fetch("https://raw.githubusercontent.com/659760ouo/Rpi_fruitfarming/main/sensor_log.json");
+            let res = await fetch(`https://raw.githubusercontent.com/659760ouo/Rpi_farming/main/sensor_log.json?t=${Date.now()}`);
             let data = await res.json();
 
             // ---------------------------
