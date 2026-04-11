@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fruit Farming Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+
+        body {
+            background: #eef6f3;
+            padding: 30px;
+            font-size: 19px;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 25px;
+            max-width: 1400px;
+            margin: 0 auto;
+            align-items: flex-start;
+        }
+
+        /* LEFT RECORD PANEL */
+        .history-panel {
+            width: 420px;
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 30px;
+        }
+
+        .history-title {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #225544;
+            font-size: 22px;
+        }
+
+        .scroll-box {
+            max-height: 650px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .record {
+            padding: 12px;
+            border-bottom: 1px dashed #ccc;
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .record:last-child {
+            border-bottom: none;
+        }
+
+        /* RIGHT DASHBOARD */
+        .dashboard {
+            flex: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #225544;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .item:last-child {
+            border-bottom: none;
+        }
+
+        .label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .value { font-weight: 500; }
+        .on { color: #00a800; font-weight: bold; }
+        .off { color: #cc0000; font-weight: bold; }
+        .rain-yes { color: #0066ff; font-weight: bold; }
+        .rain-no { color: #555; }
+
+        .footer {
+            text-align: center;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        .frequency {
+            color: #ff2222;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="main-layout">
+
+    <!-- LEFT: FULL RECORD HISTORY -->
+    <div class="history-panel">
+        <h3 class="history-title">📜 Full Record Log (Max 10)</h3>
+        <div class="scroll-box" id="recordList">
+            Loading records...
+        </div>
+    </div>
+
+    <!-- RIGHT: MAIN DASHBOARD -->
+    <div class="dashboard">
+        <div class="header">
+            <h1>🌱 Team B6 Deepseek v0.1</h1>
+            <p>Live Fruit Farming Sensor Dashboard</p>
+        </div>
+
+        <div class="card">
+            <div class="item"><span class="label">Time</span><span class="value" id="timestamp">loading...</span></div>
+            <div class="item"><span class="label">Soil Moisture</span><span class="value" id="soil_moisture">loading...</span></div>
+            <div class="item"><span class="label">Rain Status</span><span class="value" id="rain_status">loading...</span></div>
+            <div class="item"><span class="label">Light Intensity</span><span class="value" id="intensity">loading...</span></div>
+            <div class="item"><span class="label">Humidity</span><span class="value" id="humidity">loading...</span></div>
+            <div class="item"><span class="label">Temperature</span><span class="value" id="temperature">loading...</span></div>
+            <div class="item"><span class="label">Pump</span><span class="value" id="pump_s">loading...</span></div>
+            <div class="item"><span class="label">Fan</span><span class="value" id="fan_s">loading...</span></div>
+            <div class="item"><span class="label">Light</span><span class="value" id="light_s">loading...</span></div>
+            <div class="item"><span class="label">Roof</span><span class="value" id="roof_s">loading...</span></div>
+        </div>
+
+        <div class="footer">
+            Update Frequency: <span class="frequency">every 30 seconds</span>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Store max 10 records
+    let recordHistory = [];
+    let lastData = null; // TO AVOID DUPLICATE
+
+    async function getSensorData() {
+        try {
+            let res = await fetch("https://raw.githubusercontent.com/659760ouo/Rpi_fruitfarming/main/sensor_log.json");
+            let data = await res.json();
+
+            // ---------------------------
+            // CHECK IF DATA IS THE SAME → SKIP
+            // ---------------------------
+            if (lastData && JSON.stringify(data) === JSON.stringify(lastData)) {
+                return;
+            }
+            lastData = { ...data };
+
+            // ---------------------------
+            // UPDATE DASHBOARD
+            // ---------------------------
+            document.getElementById("timestamp").innerText = data.timestamp;
+            document.getElementById("soil_moisture").innerText = data.sh + ' %';
+            document.getElementById("intensity").innerText = data.intensity + ' %';
+            document.getElementById("humidity").innerText = data.hum + ' %';
+            document.getElementById("temperature").innerText = data.tmp + ' °C';
+
+            let rain = parseInt(data.rain);
+            let rainEl = document.getElementById("rain_status");
+            rainEl.innerText = rain >= 40 ? "Raining" : "Not Raining";
+            rainEl.className = rain >= 40 ? "value rain-yes" : "value rain-no";
+
+            function setStatus(id, val) {
+                let el = document.getElementById(id);
+                el.innerText = val === 1 ? "ON" : "OFF";
+                el.className = val === 1 ? "value on" : "value off";
+            }
+
+            setStatus("pump_s", data.pump);
+            setStatus("fan_s", data.fan);
+            setStatus("light_s", data.light);
+            setStatus("roof_s", data.roof);
+
+            // ---------------------------
+            // ADD NEW RECORD
+            // ---------------------------
+            recordHistory.push(data);
+
+            // IF REACH 10 → CLEAR ALL
+            if (recordHistory.length > 10) {
+                recordHistory = [];
+            }
+
+            // SHOW RECORDS
+            showAllRecords();
+
+        } catch (err) {
+            console.log("Error", err);
+        }
+    }
+
+    // ---------------------------
+    // SHOW FULL RECORD (ALL DATA)
+    // ---------------------------
+    function showAllRecords() {
+        let list = document.getElementById("recordList");
+        list.innerHTML = "";
+
+        recordHistory.forEach((r, index) => {
+            let div = document.createElement("div");
+            div.className = "record";
+            div.innerHTML = `
+                <strong>Record ${index + 1}</strong><br>
+                Time: ${r.timestamp}<br>
+                Temp: ${r.tmp}°C | Humidity: ${r.hum}%<br>
+                Soil: ${r.sh}% | Light: ${r.intensity}%<br>
+                Rain: ${parseInt(r.rain) >= 40 ? 'Raining' : 'Not Raining'}<br>
+                Pump: ${r.pump === 1 ? 'ON' : 'OFF'} 
+                | Fan: ${r.fan === 1 ? 'ON' : 'OFF'}<br>
+                Light: ${r.light === 1 ? 'ON' : 'OFF'} 
+                | Roof: ${r.roof === 1 ? 'ON' : 'OFF'}
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    // AUTO RUN
+    getSensorData();
+    setInterval(getSensorData, 5000);
+</script>
+
+</body>
+</html>
