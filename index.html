@@ -26,7 +26,6 @@
             align-items: flex-start;
         }
 
-        /* LEFT RECORD PANEL */
         .history-panel {
             width: 420px;
             background: white;
@@ -62,7 +61,6 @@
             border-bottom: none;
         }
 
-        /* RIGHT DASHBOARD */
         .dashboard {
             flex: 1;
         }
@@ -118,16 +116,11 @@
 <body>
 
 <div class="main-layout">
-
-    <!-- LEFT: FULL RECORD HISTORY -->
     <div class="history-panel">
         <h3 class="history-title">📜 Full Record Log (Max 10)</h3>
-        <div class="scroll-box" id="recordList">
-            Loading records...
-        </div>
+        <div class="scroll-box" id="recordList">Loading records...</div>
     </div>
 
-    <!-- RIGHT: MAIN DASHBOARD -->
     <div class="dashboard">
         <div class="header">
             <h1>🌱 Team B6 Deepseek v0.1</h1>
@@ -148,33 +141,31 @@
         </div>
 
         <div class="footer">
-            Update Frequency: <span class="frequency">every 30 seconds</span>
+            Update Frequency: <span class="frequency">every 5 seconds</span>
         </div>
     </div>
-
 </div>
 
 <script>
-    // Store max 10 records
     let recordHistory = [];
-    let lastData = null; // TO AVOID DUPLICATE
+    let lastData = null;
 
     async function getSensorData() {
         try {
-            let res = await fetch(`https://raw.githubusercontent.com/659760ouo/Rpi_fruitfarming/main/sensor_log.json?t=${Date.now()}`);
-            let data = await res.json();
+            // ✅ THIS IS THE FIX: CORS PROXY + CORRECT REPO + NO REDEPLOY
+            const ts = Date.now();
+            const realJsonUrl = "https://raw.githubusercontent.com/659760ouo/Rpi_fruitfarming/main/sensor_log.json";
+            const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(realJsonUrl)}&t=${ts}`;
 
-            // ---------------------------
-            // CHECK IF DATA IS THE SAME → SKIP
-            // ---------------------------
-            if (lastData && JSON.stringify(data) === JSON.stringify(lastData)) {
-                return;
-            }
+            let res = await fetch(url);
+            if (!res.ok) throw new Error("Fetch failed");
+
+            let data = await res.json();
+            if (!data || !data.timestamp) throw new Error("Invalid data");
+
+            if (lastData && JSON.stringify(data) === JSON.stringify(lastData)) return;
             lastData = { ...data };
 
-            // ---------------------------
-            // UPDATE DASHBOARD
-            // ---------------------------
             document.getElementById("timestamp").innerText = data.timestamp;
             document.getElementById("soil_moisture").innerText = data.sh + ' %';
             document.getElementById("intensity").innerText = data.intensity + ' %';
@@ -197,50 +188,33 @@
             setStatus("light_s", data.light);
             setStatus("roof_s", data.roof);
 
-            // ---------------------------
-            // ADD NEW RECORD
-            // ---------------------------
             recordHistory.push(data);
-
-            // IF REACH 10 → CLEAR ALL
-            if (recordHistory.length > 10) {
-                recordHistory = [];
-            }
-
-            // SHOW RECORDS
+            if (recordHistory.length > 10) recordHistory = [];
             showAllRecords();
 
         } catch (err) {
-            console.log("Error", err);
+            console.log("Load error:", err);
         }
     }
 
-    // ---------------------------
-    // SHOW FULL RECORD (ALL DATA)
-    // ---------------------------
     function showAllRecords() {
         let list = document.getElementById("recordList");
         list.innerHTML = "";
-
-        recordHistory.forEach((r, index) => {
+        recordHistory.forEach((r, i) => {
             let div = document.createElement("div");
             div.className = "record";
             div.innerHTML = `
-                <strong>Record ${index + 1}</strong><br>
+                <strong>Record ${i+1}</strong><br>
                 Time: ${r.timestamp}<br>
                 Temp: ${r.tmp}°C | Humidity: ${r.hum}%<br>
                 Soil: ${r.sh}% | Light: ${r.intensity}%<br>
-                Rain: ${parseInt(r.rain) >= 40 ? 'Raining' : 'Not Raining'}<br>
-                Pump: ${r.pump === 1 ? 'ON' : 'OFF'} 
-                | Fan: ${r.fan === 1 ? 'ON' : 'OFF'}<br>
-                Light: ${r.light === 1 ? 'ON' : 'OFF'} 
-                | Roof: ${r.roof === 1 ? 'ON' : 'OFF'}
+                Rain: ${parseInt(r.rain)>=40?'Raining':'Not Raining'}<br>
+                Pump: ${r.pump} | Fan: ${r.fan} | Light: ${r.light} | Roof: ${r.roof}
             `;
             list.appendChild(div);
         });
     }
 
-    // AUTO RUN
     getSensorData();
     setInterval(getSensorData, 5000);
 </script>
